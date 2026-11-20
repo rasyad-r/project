@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Magic Tiles Neon</title>
+    <!-- Tailwind CSS for UI structure -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #030712;
+            color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Mobile Container Frame */
+        #app-frame {
+            position: relative;
+            width: 100%;
+            max-width: 460px;
+            height: 100dvh;
+            background: radial-gradient(circle at 50% 20%, #0f172a 0%, #070b18 100%);
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0, 229, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Canvas fit */
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Neon Glow Utilities */
+        .neon-glow-cyan {
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.4), inset 0 0 10px rgba(0, 229, 255, 0.2);
+        }
+        .neon-glow-purple {
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.4), inset 0 0 10px rgba(168, 85, 247, 0.2);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
+        }
+        .neon-text-gold {
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.7);
+        }
+
+        /* Custom Scrollbar for Song List */
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: rgba(0, 229, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        /* Keycaps visual representation */
+        .keycap {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom-width: 3px;
+            border-radius: 6px;
+        }
+
+        /* Pulse Animations */
+        @keyframes tapPulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-tap-pulse {
+            animation: tapPulse 1.2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div id-="app-frame" id="app-frame">
+
+        <!-- ================= MAIN MENU SCREEN ================= -->
+        <div id="screen-menu" class="absolute inset-0 z-20 flex flex-col justify-between p-5 bg-slate-950/90 backdrop-blur-md transition-opacity duration-300">
+            <!-- Header -->
+            <div class="text-center mt-4">
+                <div class="inline-block px-3 py-1 mb-2 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-400 text-xs font-semibold tracking-wider uppercase">
+                    Edisi Neon Mobile
+                </div>
+                <h1 class="text-4xl font-extrabold tracking-tight text-white neon-text-cyan">
+                    MAGIC TILES <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">NEON</span>
+                </h1>
+                <p class="text-slate-400 text-xs mt-1">Sentuh ubin neon sesuai irama musik</p>
+            </div>
+
+            <!-- Main Content Area / Tabs -->
+            <div class="my-auto space-y-4">
+
+                <!-- Game Mode Selector -->
+                <div class="bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800 flex justify-between items-center text-sm">
+                    <button id="btn-mode-classic" class="w-1/2 py-2 rounded-xl font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg">
+                        Mode Klasik
+                    </button>
+                    <button id="btn-mode-relax" class="w-1/2 py-2 rounded-xl font-bold transition-all text-slate-400 hover:text-white">
+                        Mode Santai 🛡️
+                    </button>
+                </div>
+
+                <!-- Song Source Toggle Buttons -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="tab-builtin-btn" class="py-2.5 rounded-xl border border-cyan-500/50 bg-cyan-950/40 text-cyan-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5">
+                        🎵 Lagu Bawaan
+                    </button>
+                    <button id="tab-custom-btn" class="py-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5">
+                        🌐 Custom / URL
+                    </button>
+                </div>
+
+                <!-- PANEL 1: Built-in Songs List -->
+                <div id="panel-builtin" class="space-y-2.5 custom-scroll max-h-[48h] overflow-y-auto pr-1">
+                    <!-- Cards will be dynamically rendered here -->
+                </div>
+
+                <!-- PANEL 2: Custom Song URL & File Loader -->
+                <div id="panel-custom" class="hidden bg-slate-900/90 border border-slate-800 rounded-2xl p-4 space-y-3">
+                    <h3 class="text-sm font-bold text-cyan-400 flex items-center gap-2">
+                        <span>🔗</span> Muat Lagu Kustom
+                    </h3>
+                    
+                    <div>
+                        <label class="text-[11px] text-slate-400 mb-1 block">Tautkan Direct Audio URL (.mp3 / .wav):</label>
+                        <input type="text" id="custom-url-input" placeholder="https://example.com/audio.mp3" class="w-full bg-slate-950 border border-slate-700 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white outline-none transition">
+                        <p class="text-[10px] text-slate-500 mt-1">Gunakan link file audio langsung, bukan halaman YouTube/Spotify.</p>
+                    </div>
+
+                    <!-- Preset test links -->
+                    <div>
+                        <span class="text-[10px] text-slate-400 font-semibold block mb-1">Coba Contoh Link Cepat:</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button class="preset-url-btn bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] px-2.5 py-1 rounded-lg border border-slate-700 transition" data-url="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3">
+                                🎶 Lo-Fi Chill
+                            </button>
+                            <button class="preset-url-btn bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] px-2.5 py-1 rounded-lg border border-slate-700 transition" data-url="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=synthwave-80s-110045.mp3">
+                                ⚡ Synthwave
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="relative flex py-1 items-center">
+                        <div class="flex-grow border-t border-slate-800"></div>
+                        <span class="flex-shrink mx-2 text-[10px] text-slate-500 uppercase">atau</span>
+                        <div class="flex-grow border-t border-slate-800"></div>
+                    </div>
+
+                    <!-- Local File Input -->
+                    <div>
+                        <label for="local-file-input" class="w-full border border-dashed border-slate-700 hover:border-cyan-400 bg-slate-950/60 hover:bg-slate-950 rounded-xl p-2.5 flex items-center justify-center gap-2 cursor-pointer transition text-xs text-slate-300">
+                            <span>📁</span> <span id="file-input-label">Pilih File Audio HP (.mp3, .wav)</span>
+                        </label>
+                        <input type="file" id="local-file-input" accept="audio/*" class="hidden">
+                    </div>
+
+                    <!-- Custom Song Difficulty Selection -->
+                    <div class="pt-1">
+                        <span class="text-[11px] text-slate-400 block mb-1.5 font-semibold">Tingkat Kesulitan:</span>
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <button class="diff-btn py-1.5 rounded-lg text-xs font-bold border border-emerald-500/40 bg-emerald-950/30 text-emerald-400 active" data-diff="easy">Mudah</button>
+                            <button class="diff-btn py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-slate-400" data-diff="medium font-bold">Sedang</button>
+                            <button class="diff-btn py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-slate-400" data-diff="hard font-bold">Sulit</button>
+                        </div>
+                    </div>
+
+                    <!-- Start Custom Song Button -->
+                    <button id="btn-start-custom" class="w-full py-3 rounded-xl font-bold bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition active:scale-95">
+                        <span>▶</span> Analisis & Mainkan
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Footer / Options -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-900 text-slate-400 text-xs">
+                <div class="flex items-center gap-2">
+                    <button id="btn-toggle-sound" class="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-400">
+                        🔊 Suara: AKTIF
+                    </button>
+                </div>
+                <div class="text-[10px] text-slate-500 text-right">
+                    Keyboard: <span class="keycap px-1 py-0.5 text-slate-300">D</span> <span class="keycap px-1 py-0.5 text-slate-300">F</span> <span class="keycap px-1 py-0.5 text-slate-300">J</span> <span class="keycap px-1 py-0.5 text-slate-300">K</span>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ================= MANUAL BPM FALLBACK MODAL ================= -->
+        <div id="modal-bpm-fallback" class="hidden absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+            <div class="bg-slate-900 border border-cyan-500/40 rounded-2xl p-5 w-full max-w-sm space-y-4 shadow-2xl">
+                <div class="text-center">
+                    <div class="text-2xl mb-1">⚠️</div>
+                    <h3 class="text-base font-bold text-white">Mode Sinkronisasi Manual</h3>
+                    <p class="text-xs text-slate-400 mt-1">Server audio membatasi analisis otomatis (CORS). Musik tetap diputar, pilih tempo ritme di bawah:</p>
+                </div>
+
+                <div class="space-y-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">Tempo Musik (BPM):</span>
+                        <span id="bpm-value-display" class="font-bold text-cyan-400 text-sm">120 BPM</span>
+                    </div>
+                    <input type="range" id="bpm-slider" min="70" max="180" value="120" class="w-full accent-cyan-400 cursor-pointer">
+                    
+                    <button id="btn-tap-tempo" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-xs font-semibold border border-slate-700 transition active:scale-95">
+                        👆 Ketuk Di Sini Sesuai Irama (Tap Tempo)
+                    </button>
+                </div>
+
+                <div class="flex gap-2">
+                    <button id="btn-cancel-bpm" class="w-1/2 py-2.5 rounded-xl border border-slate-700 text-slate-300 text-xs font-bold">
+                        Batal
+                    </button>
+                    <button id="btn-confirm-bpm" class="w-1/2 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-extrabold shadow-lg">
+                        Mulai Main
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ================= LOADING OVERLAY ================= -->
+        <div id="screen-loading" class="hidden absolute inset-0 z-40 flex flex-col items-center justify-center p-6 bg-slate-950/95 backdrop-blur-md">
+            <div class="relative w-16 h-16 mb-4">
+                <div class="absolute inset-0 rounded-full border-4 border-cyan-500/20"></div>
+                <div class="absolute inset-0 rounded-full border-4 border-cyan-400 border-t-transparent animate-spin"></div>
+            </div>
+            <h3 id="loading-title" class="text-base font-bold text-white text-center">Menganalisis Spektrum Musik...</h3>
+            <p id="loading-sub" class="text-xs text-slate-400 text-center mt-1">Mempersiapkan ubin neon ritmis</p>
+        </div>
+
+
+        <!-- ================= GAME PLAY HUD OVERLAY ================= -->
+        <div id="hud-overlay" class="hidden pointer-events-none absolute inset-0 z-10 flex flex-col justify-between p-4">
+            <!-- Top HUD Bar -->
+            <div class="flex items-center justify-between pointer-events-auto">
+                <!-- Pause Button -->
+                <button id="btn-pause" class="w-10 h-10 rounded-full bg-slate-900/80 border border-slate-700 text-white flex items-center justify-center font-bold text-lg active:scale-90 transition backdrop-blur-md shadow-lg">
+                    ❚❚
+                </button>
+
+                <!-- Score & Star Progress Bar -->
+                <div class="flex-grow mx-4 max-w-[220px]">
+                    <div class="text-center mb-0.5">
+                        <span id="hud-score" class="text-2xl font-black text-white tracking-wider neon-text-cyan">0</span>
+                    </div>
+                    <!-- Star progress bar -->
+                    <div class="relative w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                        <div id="star-progress-fill" class="h-full bg-gradient-to-r from-cyan-400 via-purple-500 to-amber-400 w-0 transition-all duration-200"></div>
+                    </div>
+                    <div class="flex justify-between px-1 mt-0.5 text-[10px]">
+                        <span id="star-1" class="opacity-30">⭐</span>
+                        <span id="star-2" class="opacity-30">⭐</span>
+                        <span id="star-3" class="opacity-30">⭐</span>
+                    </div>
+                </div>
+
+                <!-- Combo Counter -->
+                <div class="w-12 text-right">
+                    <div id="hud-combo-container" class="transition-transform duration-100">
+                        <div id="hud-combo" class="text-xl font-extrabold text-amber-400 leading-none">0</div>
+                        <div class="text-[9px] text-amber-300/80 font-bold tracking-tighter">COMBO</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tap to Start First Note Prompt -->
+            <div id="prompt-start-tap" class="pointer-events-none self-center mb-24 bg-slate-900/80 border border-cyan-400/50 px-5 py-2.5 rounded-full text-cyan-300 font-bold text-xs uppercase tracking-widest animate-tap-pulse shadow-lg backdrop-blur-md">
+                👇 Ketuk Ubin Pertama
+            </div>
+        </div>
+
+
+        <!-- ================= PAUSE OVERLAY ================= -->
+        <div id="screen-pause" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center p-6 bg-slate-950/85 backdrop-blur-md">
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-xs text-center space-y-4 shadow-2xl">
+                <h2 class="text-xl font-black text-white tracking-wide">PERMAINAN DIPAUSED</h2>
+                <div class="space-y-2 pt-2">
+                    <button id="btn-resume" class="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider shadow-lg transition active:scale-95">
+                        ▶ Lanjutkan
+                    </button>
+                    <button id="btn-restart" class="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider border border-slate-700 transition active:scale-95">
+                        🔄 Ulangi Lagi
+                    </button>
+                    <button id="btn-pause-menu" class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-white font-semibold text-xs uppercase tracking-wider transition">
+                        🏠 Menu Utama
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ================= RESULT / GAME OVER SCREEN ================= -->
+        <div id="screen-result" class="hidden absolute inset-0 z-30 flex flex-col justify-between p-6 bg-slate-950/95 backdrop-blur-md transition-all duration-300">
+            <div class="text-center mt-6">
+                <h2 id="result-title" class="text-3xl font-black text-white tracking-tight">SELESAI!</h2>
+                <p id="result-song-name" class="text-xs text-cyan-400 font-semibold mt-1">Nama Lagu</p>
+                
+                <!-- Stars display -->
+                <div class="flex justify-center gap-3 my-4 text-3xl">
+                    <span id="res-star-1" class="transition-transform duration-300 scale-75 opacity-30">⭐</span>
+                    <span id="res-star-2" class="transition-transform duration-300 scale-75 opacity-30">⭐</span>
+                    <span id="res-star-3" class="transition-transform duration-300 scale-75 opacity-30">⭐</span>
+                </div>
+            </div>
+
+            <!-- Stats Box -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 space-y-3">
+                <div class="flex justify-between items-center border-b border-slate-800/80 pb-2.5">
+                    <span class="text-xs text-slate-400 font-medium">Skor Akhir</span>
+                    <span id="res-score" class="text-2xl font-extrabold text-white neon-text-cyan">0</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-800/80 pb-2.5">
+                    <span class="text-xs text-slate-400 font-medium">Akurasi Hit</span>
+                    <span id="res-accuracy" class="text-sm font-bold text-emerald-400">100%</span>
+                </div>
+                <div class="flex justify-between items-center border-b border-slate-800/80 pb-2.5">
+                    <span class="text-xs text-slate-400 font-medium">Combo Maksimal</span>
+                    <span id="res-max-combo" class="text-sm font-bold text-amber-400">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-slate-400 font-medium">Rekor Terbaik</span>
+                    <span id="res-best-score" class="text-sm font-bold text-purple-400">0</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-2 mb-4">
+                <button id="btn-res-replay" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+                    <span>🔄</span> Main Lagi
+                </button>
+                <button id="btn-res-menu" class="w-full py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs uppercase tracking-wider border border-slate-800 transition">
+                    🏠 Menu Utama
+                </button>
+            </div>
+        </div>
+
+
+        <!-- GAME CANVAS -->
+        <canvas id="game-canvas"></canvas>
+
+    </div>
+
+    <!-- ================= JAVASCRIPT GAME LOGIC ================= -->
+    <script>
+        /**
+         * MAGIC TILES NEON - ENGINE & CONTROLLER
+         */
+
+        // Global State & Storage
+        const STORAGE_KEY = 'magic_tiles_neon_scores_v1';
+        let highScores = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+
+        function saveHighScore(songId, score) {
+            if (!highScores[songId] || score > highScores[songId]) {
+                highScores[songId] = score;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(highScores));
+            }
+        }
+
+        function getHighScore(songId) {
+            return highScores[songId] || 0;
+        }
+
+        // System Settings
+        let soundEnabled = true;
+        let isRelaxMode = false;
+
+        // Web Audio Context Initialization
+        let audioCtx = null;
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioCtxClass();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // Audio System State
+        let currentAudioBuffer = null;
+        let currentBufferSource = null;
+        let currentHtmlAudio = null;
+        let isHtmlAudioFallback = false;
+        let audioStartTime = 0;
+        let pauseOffsetTime = 0;
+
+        // Built-in Synth Tracks Data
+        const BUILTIN_SONGS = [
+            {
+                id: 'langit_senja',
+                title: 'Langit Senja',
+                diffName: 'Mudah',
+                diffLevel: 'easy',
+                bpm: 104,
+                color: 'from-emerald-500 to-teal-700',
+                generateNotes: (bpm) => generateProceduralMap(bpm, 'easy', 40)
+            },
+            {
+                id: 'lampu_kota',
+                title: 'Lampu Kota',
+                diffName: 'Sedang',
+                diffLevel: 'medium',
+                bpm: 126,
+                color: 'from-cyan-500 to-blue-700',
+                generateNotes: (bpm) => generateProceduralMap(bpm, 'medium', 55)
+            },
+            {
+                id: 'turbo_malam',
+                title: 'Turbo Malam',
+                diffName: 'Sulit',
+                diffLevel: 'hard',
+                bpm: 150,
+                color: 'from-purple-500 to-pink-700',
+                generateNotes: (bpm) => generateProceduralMap(bpm, 'hard', 75)
+            }
+        ];
+
+        // Canvas Setup
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        let dpr = window.devicePixelRatio || 1;
+        let canvasWidth = 0;
+        let canvasHeight = 0;
+        let laneWidth = 0;
+        let hitLineY = 0;
+
+        function resizeCanvas() {
+            const frame = document.getElementById('app-frame');
+            canvasWidth = frame.clientWidth;
+            canvasHeight = frame.clientHeight;
+            
+            dpr = window.devicePixelRatio || 1;
+            canvas.width = canvasWidth * dpr;
+            canvas.height = canvasHeight * dpr;
+            
+            ctx.scale(dpr, dpr);
+            
+            laneWidth = canvasWidth / 4;
+            hitLineY = canvasHeight * 0.82;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // Core Gameplay Variables
+        let gameState = 'MENU'; // 'MENU', 'WAIT_START', 'PLAYING', 'PAUSED', 'RESULT'
+        let currentSong = null; // song metadata
+        let activeBeatmap = []; // array of tile objects
+        let activeParticles = [];
+        let floatingTexts = [];
+        let lanePressState = [false, false, false, false];
+
+        let score = 0;
+        let combo = 0;
+        let maxCombo = 0;
+        let totalNotesCount = 0;
+        let hitNotesCount = 0;
+        let currentTileIndex = 0;
+        let speedPixelsPerSec = 450;
+        let activePointers = new Map(); // pointerId -> laneIndex
+
+        // Audio Timing Sync
+        function getCurrentSongTime() {
+            if (gameState === 'WAIT_START') return 0;
+            if (isHtmlAudioFallback && currentHtmlAudio) {
+                return currentHtmlAudio.currentTime;
+            }
+            if (audioCtx) {
+                return audioCtx.currentTime - audioStartTime;
+            }
+            return 0;
+        }
+
+        // Synth Sound Generator (Web Audio API)
+        function playHitSound(type = 'tap') {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                const now = ctx.currentTime;
+                if (type === 'tap') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.08); // A5
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'miss') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(80, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                }
+            } catch(e) {}
+        }
+
+        // Web Audio Synthesizer for Built-in Songs
+        function synthesizeBuiltinSongBuffer(songConfig) {
+            const ctx = getAudioContext();
+            const bpm = songConfig.bpm;
+            const secondsPerBeat = 60 / bpm;
+            const totalBeats = 140; 
+            const duration = totalBeats * secondsPerBeat;
+            
+            const sampleRate = ctx.sampleRate;
+            const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, sampleRate * duration, sampleRate);
+            
+            // Chord progressions (C Major / A Minor family)
+            const scales = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+            const bassNotes = [130.81, 146.83, 164.81, 174.61, 196.00, 220.00];
+
+            for (let i = 0; i < totalBeats; i++) {
+                const beatTime = i * secondsPerBeat;
+                
+                // Melody synth note
+                const noteFreq = scales[(i * 3 + (i % 5)) % scales.length];
+                const osc = offlineCtx.createOscillator();
+                const gain = offlineCtx.createGain();
+                
+                osc.type = (i % 2 === 0) ? 'triangle' : 'sine';
+                osc.frequency.setValueAtTime(noteFreq, beatTime);
+                
+                gain.gain.setValueAtTime(0.001, beatTime);
+                gain.gain.linearRampToValueAtTime(0.25, beatTime + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, beatTime + secondsPerBeat * 0.85);
+                
+                osc.connect(gain);
+                gain.connect(offlineCtx.destination);
+                osc.start(beatTime);
+                osc.stop(beatTime + secondsPerBeat);
+
+                // Bass synth note on quarter notes
+                if (i % 2 === 0) {
+                    const bassFreq = bassNotes[(i / 2) % bassNotes.length];
+                    const bassOsc = offlineCtx.createOscillator();
+                    const bassGain = offlineCtx.createGain();
+                    
+                    bassOsc.type = 'sawtooth';
+                    bassOsc.frequency.setValueAtTime(bassFreq, beatTime);
+                    
+                    bassGain.gain.setValueAtTime(0.18, beatTime);
+                    bassGain.gain.exponentialRampToValueAtTime(0.001, beatTime + secondsPerBeat * 1.5);
+                    
+                    bassOsc.connect(bassGain);
+                    bassGain.connect(offlineCtx.destination);
+                    bassOsc.start(beatTime);
+                    bassOsc.stop(beatTime + secondsPerBeat * 1.5);
+                }
+            }
+
+            return offlineCtx.startRendering();
+        }
+
+        // Procedural Beatmap Generator for Built-in Tracks
+        function generateProceduralMap(bpm, diff, totalBeats) {
+            const secondsPerBeat = 60 / bpm;
+            const notes = [];
+            let currentLane = Math.floor(Math.random() * 4);
+            let time = 1.2; // Start after 1.2s padding
+
+            const isHard = diff === 'hard';
+            const isMedium = diff === 'medium';
+
+            for (let i = 0; i < totalBeats; i++) {
+                // Select distinct next lane
+                let nextLane = Math.floor(Math.random() * 4);
+                while (nextLane === currentLane) {
+                    nextLane = Math.floor(Math.random() * 4);
+                }
+                currentLane = nextLane;
+
+                const isHold = (i % 7 === 3 && (isMedium || isHard));
+                const holdDuration = isHold ? secondsPerBeat * 1.2 : 0;
+
+                notes.push({
+                    id: i,
+                    lane: currentLane,
+                    time: time,
+                    duration: holdDuration,
+                    type: isHold ? 'hold' : 'tap',
+                    hit: false,
+                    holding: false,
+                    holdProgress: 0,
+                    missed: false
+                });
+
+                time += secondsPerBeat * (isHard ? 0.75 : (isMedium ? 0.85 : 1.0));
+            }
+            return notes;
+        }
+
+
+        // ================= UI MANAGEMENT & RENDER =================
+
+        const screenMenu = document.getElementById('screen-menu');
+        const screenPause = document.getElementById('screen-pause');
+        const screenResult = document.getElementById('screen-result');
+        const screenLoading = document.getElementById('screen-loading');
+        const hudOverlay = document.getElementById('hud-overlay');
+        const panelBuiltin = document.getElementById('panel-builtin');
+        const panelCustom = document.getElementById('panel-custom');
+        const tabBuiltinBtn = document.getElementById('tab-builtin-btn');
+        const tabCustomBtn = document.getElementById('tab-custom-btn');
+
+        // Render Built-in Song List Cards
+        function renderBuiltinSongs() {
+            panelBuiltin.innerHTML = '';
+            BUILTIN_SONGS.forEach(song => {
+                const best = getHighScore(song.id);
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer transition active:scale-98 shadow-md';
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${song.color} flex items-center justify-center font-black text-white text-base shadow-inner">
+                            ▶
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-white">${song.title}</h4>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-cyan-300 font-semibold border border-slate-700">${song.diffName}</span>
+                                <span class="text-[10px] text-slate-400 font-medium">${song.bpm} BPM</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-[10px] text-slate-400 uppercase font-semibold">Skor Terbaik</div>
+                        <div class="text-sm font-black text-amber-400 neon-text-gold">${best.toLocaleString()}</div>
+                    </div>
+                `;
+                card.addEventListener('click', () => startBuiltinSong(song));
+                panelBuiltin.appendChild(card);
+            });
+        }
+        renderBuiltinSongs();
+
+        // Mode Toggles & Tabs
+        document.getElementById('btn-mode-classic').addEventListener('click', (e) => {
+            isRelaxMode = false;
+            e.target.className = 'w-1/2 py-2 rounded-xl font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg';
+            document.getElementById('btn-mode-relax').className = 'w-1/2 py-2 rounded-xl font-bold transition-all text-slate-400 hover:text-white';
+        });
+
+        document.getElementById('btn-mode-relax').addEventListener('click', (e) => {
+            isRelaxMode = true;
+            e.target.className = 'w-1/2 py-2 rounded-xl font-bold transition-all bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg';
+            document.getElementById('btn-mode-classic').className = 'w-1/2 py-2 rounded-xl font-bold transition-all text-slate-400 hover:text-white';
+        });
+
+        tabBuiltinBtn.addEventListener('click', () => {
+            panelBuiltin.classList.remove('hidden');
+            panelCustom.classList.add('hidden');
+            tabBuiltinBtn.className = 'py-2.5 rounded-xl border border-cyan-500/50 bg-cyan-950/40 text-cyan-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5';
+            tabCustomBtn.className = 'py-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5';
+        });
+
+        tabCustomBtn.addEventListener('click', () => {
+            panelCustom.classList.remove('hidden');
+            panelBuiltin.classList.add('hidden');
+            tabCustomBtn.className = 'py-2.5 rounded-xl border border-cyan-500/50 bg-cyan-950/40 text-cyan-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5';
+            tabBuiltinBtn.className = 'py-2.5 rounded-xl border border-slate-800 bg-slate-900/60 text-slate-400 hover:text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5';
+        });
+
+        // Sound Mute Toggle
+        const btnToggleSound = document.getElementById('btn-toggle-sound');
+        btnToggleSound.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            btnToggleSound.innerHTML = soundEnabled ? '🔊 Suara: AKTIF' : '🔇 Suara: MATI';
+            btnToggleSound.className = soundEnabled ? 'p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-cyan-400' : 'p-2 rounded-lg bg-red-950/50 border border-red-800/50 text-red-400';
+        });
+
+        // Preset URLs handler
+        document.querySelectorAll('.preset-url-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('custom-url-input').value = btn.getAttribute('data-url');
+            });
+        });
+
+        // File selection label handler
+        const localFileInput = document.getElementById('local-file-input');
+        localFileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                document.getElementById('file-input-label').textContent = e.target.files[0].name;
+            }
+        });
+
+        // Custom Difficulty selection
+        let selectedCustomDiff = 'easy';
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.diff-btn').forEach(b => {
+                    b.className = 'diff-btn py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 text-slate-400';
+                });
+                selectedCustomDiff = btn.getAttribute('data-diff');
+                btn.className = 'diff-btn py-1.5 rounded-lg text-xs font-bold border border-cyan-500/40 bg-cyan-950/40 text-cyan-300 font-bold';
+            });
+        });
+
+
+        // ================= GAMEPLAY LIFECYCLE =================
+
+        async function startBuiltinSong(songConfig) {
+            getAudioContext();
+            screenLoading.classList.remove('hidden');
+            document.getElementById('loading-title').textContent = `Mempersiapkan "${songConfig.title}"...`;
+
+            try {
+                currentSong = songConfig;
+                currentAudioBuffer = await synthesizeBuiltinSongBuffer(songConfig);
+                isHtmlAudioFallback = false;
+
+                // Speed tuning by difficulty
+                speedPixelsPerSec = songConfig.diffLevel === 'hard' ? 620 : (songConfig.diffLevel === 'medium' ? 520 : 420);
+                activeBeatmap = songConfig.generateNotes(songConfig.bpm);
+                
+                initGameSession();
+            } catch (err) {
+                alert('Gagal memproses audio lagu bawaan: ' + err.message);
+            } finally {
+                screenLoading.classList.add('hidden');
+            }
+        }
+
+        // Custom Song Loader & Beatmap Analyzer
+        document.getElementById('btn-start-custom').addEventListener('click', async () => {
+            const url = document.getElementById('custom-url-input').value.trim();
+            const file = localFileInput.files[0];
+
+            if (!url && !file) {
+                alert('Silakan masukkan link Direct Audio URL atau pilih file audio dari perangkat Anda.');
+                return;
+            }
+
+            getAudioContext();
+            screenLoading.classList.remove('hidden');
+            document.getElementById('loading-title').textContent = 'Menganalisis Audio & Spektrum Ritme...';
+
+            try {
+                let arrayBuffer = null;
+                let songName = 'Lagu Kustom';
+
+                if (file) {
+                    songName = file.name.replace(/\.[^/.]+$/, "");
+                    arrayBuffer = await file.arrayBuffer();
+                } else if (url) {
+                    songName = url.split('/').pop().split('?')[0] || 'Lagu Internet';
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error('HTTP ' + response.status);
+                        arrayBuffer = await response.arrayBuffer();
+                    } catch (fetchErr) {
+                        // CORS / Network Fallback to HTML5 Streaming Audio
+                        console.warn('CORS / Fetch error. Switching to HTML5 Audio Streaming fallback:', fetchErr);
+                        screenLoading.classList.add('hidden');
+                        showManualBpmModal(url, songName);
+                        return;
+                    }
+                }
+
+                // Decode audio data using Web Audio API
+                const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                currentAudioBuffer = decodedBuffer;
+                isHtmlAudioFallback = false;
+
+                currentSong = {
+                    id: 'custom_' + Date.now(),
+                    title: songName,
+                    diffName: selectedCustomDiff.toUpperCase(),
+                    diffLevel: selectedCustomDiff
+                };
+
+                // Analyze peaks & generate tile map
+                activeBeatmap = analyzeAudioToBeatmap(decodedBuffer, selectedCustomDiff);
+                speedPixelsPerSec = selectedCustomDiff === 'hard' ? 640 : (selectedCustomDiff === 'medium' ? 530 : 430);
+
+                initGameSession();
+            } catch (err) {
+                alert('Gagal membaca file audio. Pastikan format file didukung (.mp3/.wav). Error: ' + err.message);
+            } finally {
+                screenLoading.classList.add('hidden');
+            }
+        });
+
+        // Smart Peak & Energy Detection Engine for Real PCM Audio
+        function analyzeAudioToBeatmap(audioBuffer, diff) {
+            const pcmData = audioBuffer.getChannelData(0); // mono channel
+            const sampleRate = audioBuffer.sampleRate;
+            
+            // Frame size ~25ms
+            const frameSize = Math.floor(sampleRate * 0.025);
+            const totalFrames = Math.floor(pcmData.length / frameSize);
+            const frameEnergies = new Float32Array(totalFrames);
+
+            for (let f = 0; f < totalFrames; f++) {
+                let sum = 0;
+                const offset = f * frameSize;
+                for (let i = 0; i < frameSize; i += 2) {
+                    const s = pcmData[offset + i];
+                    sum += s * s;
+                }
+                frameEnergies[f] = Math.sqrt(sum / (frameSize / 2));
+            }
+
+            // Target spacing by difficulty
+            const minSpacing = diff === 'hard' ? 0.22 : (diff === 'medium' ? 0.32 : 0.45);
+            const notes = [];
+            let lastTime = 1.2; // 1.2s start margin
+            let currentLane = Math.floor(Math.random() * 4);
+
+            // Compute local moving average & thresholding
+            const windowSize = 30; // ~0.75s local window
+            for (let f = windowSize; f < totalFrames - windowSize; f++) {
+                const time = (f * frameSize) / sampleRate;
+                if (time < lastTime + minSpacing) continue;
+
+                let localSum = 0;
+                for (let w = -windowSize; w <= windowSize; w++) {
+                    localSum += frameEnergies[f + w];
+                }
+                const localAvg = localSum / (windowSize * 2 + 1);
+                const currentEnergy = frameEnergies[f];
+
+                // Onset Peak threshold ratio
+                const threshold = diff === 'hard' ? 1.25 : (diff === 'medium' ? 1.4 : 1.6);
+                if (currentEnergy > localAvg * threshold && currentEnergy > 0.04) {
+                    let nextLane = Math.floor(Math.random() * 4);
+                    while (nextLane === currentLane) {
+                        nextLane = Math.floor(Math.random() * 4);
+                    }
+                    currentLane = nextLane;
+
+                    const isHold = (notes.length % 6 === 2 && diff !== 'easy');
+                    notes.push({
+                        id: notes.length,
+                        lane: currentLane,
+                        time: time,
+                        duration: isHold ? 0.35 : 0,
+                        type: isHold ? 'hold' : 'tap',
+                        hit: false,
+                        holding: false,
+                        holdProgress: 0,
+                        missed: false
+                    });
+                    lastTime = time;
+                }
+            }
+
+            // Fallback if notes are too sparse
+            if (notes.length < 20) {
+                return generateProceduralMap(120, diff, 60);
+            }
+            return notes;
+        }
+
+        // Manual BPM Sync Modal Fallback for CORS-blocked streaming URLs
+        let pendingFallbackUrl = '';
+        let pendingFallbackName = '';
+        let manualBpm = 120;
+        let tapTimes = [];
+
+        function showManualBpmModal(url, name) {
+            pendingFallbackUrl = url;
+            pendingFallbackName = name;
+            document.getElementById('modal-bpm-fallback').classList.remove('hidden');
+        }
+
+        document.getElementById('bpm-slider').addEventListener('input', (e) => {
+            manualBpm = parseInt(e.target.value);
+            document.getElementById('bpm-value-display').textContent = `${manualBpm} BPM`;
+        });
+
+        document.getElementById('btn-tap-tempo').addEventListener('click', () => {
+            const now = performance.now();
+            tapTimes.push(now);
+            if (tapTimes.length > 4) tapTimes.shift();
+            if (tapTimes.length >= 2) {
+                const intervals = [];
+                for (let i = 1; i < tapTimes.length; i++) {
+                    intervals.push(tapTimes[i] - tapTimes[i - 1]);
+                }
+                const avgMs = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+                manualBpm = Math.min(180, Math.max(70, Math.round(60000 / avgMs)));
+                document.getElementById('bpm-slider').value = manualBpm;
+                document.getElementById('bpm-value-display').textContent = `${manualBpm} BPM`;
+            }
+        });
+
+        document.getElementById('btn-cancel-bpm').addEventListener('click', () => {
+            document.getElementById('modal-bpm-fallback').classList.add('hidden');
+        });
+
+        document.getElementById('btn-confirm-bpm').addEventListener('click', () => {
+            document.getElementById('modal-bpm-fallback').classList.add('hidden');
+            
+            isHtmlAudioFallback = true;
+            currentHtmlAudio = new Audio(pendingFallbackUrl);
+            
+            currentSong = {
+                id: 'cors_' + Date.now(),
+                title: pendingFallbackName,
+                diffName: 'MANUAL',
+                diffLevel: selectedCustomDiff
+            };
+
+            activeBeatmap = generateProceduralMap(manualBpm, selectedCustomDiff, 80);
+            speedPixelsPerSec = selectedCustomDiff === 'hard' ? 620 : (selectedCustomDiff === 'medium' ? 520 : 420);
+            initGameSession();
+        });
+
+
+        // Initialize Game Session & Reset State
+        function initGameSession() {
+            stopAudioSources();
+
+            score = 0;
+            combo = 0;
+            maxCombo = 0;
+            currentTileIndex = 0;
+            hitNotesCount = 0;
+            totalNotesCount = activeBeatmap.length;
+            activeParticles = [];
+            floatingTexts = [];
+            activePointers.clear();
+            lanePressState = [false, false, false, false];
+
+            updateHUD();
+
+            gameState = 'WAIT_START';
+
+            screenMenu.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => screenMenu.classList.add('hidden'), 300);
+
+            screenPause.classList.add('hidden');
+            screenResult.classList.add('hidden');
+            hudOverlay.classList.remove('hidden');
+            document.getElementById('prompt-start-tap').classList.remove('hidden');
+
+            resizeCanvas();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startMusicPlayback() {
+            if (gameState !== 'WAIT_START') return;
+            gameState = 'PLAYING';
+            document.getElementById('prompt-start-tap').classList.add('hidden');
+
+            const ctx = getAudioContext();
+            if (isHtmlAudioFallback && currentHtmlAudio) {
+                currentHtmlAudio.currentTime = 0;
+                currentHtmlAudio.play().catch(e => console.warn(e));
+            } else if (currentAudioBuffer) {
+                currentBufferSource = ctx.createBufferSource();
+                currentBufferSource.buffer = currentAudioBuffer;
+                currentBufferSource.connect(ctx.destination);
+                audioStartTime = ctx.currentTime;
+                currentBufferSource.start(0);
+            }
+        }
+
+        function stopAudioSources() {
+            if (currentBufferSource) {
+                try { currentBufferSource.stop(); } catch(e){}
+                currentBufferSource = null;
+            }
+            if (currentHtmlAudio) {
+                try { currentHtmlAudio.pause(); } catch(e){}
+                currentHtmlAudio = null;
+            }
+        }
+
+
+        // ================= INPUT ENGINE (MULTI-TOUCH POINTERS + DESKTOP KEYS) =================
+
+        function getLaneFromX(x) {
+            const lane = Math.floor(x / laneWidth);
+            return Math.max(0, Math.min(3, lane));
+        }
+
+        function handleLaneTap(laneIndex) {
+            lanePressState[laneIndex] = true;
+            setTimeout(() => { lanePressState[laneIndex] = false; }, 120);
+
+            if (gameState === 'WAIT_START') {
+                // Check if tapping the first tile
+                const firstTile = activeBeatmap[0];
+                if (firstTile && firstTile.lane === laneIndex) {
+                    processTileHit(firstTile);
+                    startMusicPlayback();
+                } else if (!isRelaxMode) {
+                    triggerGameOver('Mistap sebelum mulai!');
+                }
+                return;
+            }
+
+            if (gameState !== 'PLAYING') return;
+
+            const songTime = getCurrentSongTime();
+            // Find active hittable tile in this lane
+            let hitFound = false;
+            for (let i = 0; i < activeBeatmap.length; i++) {
+                const tile = activeBeatmap[i];
+                if (tile.lane === laneIndex && !tile.hit && !tile.missed) {
+                    const timeDiff = Math.abs(songTime - tile.time);
+                    
+                    // Hit window: ±200ms
+                    if (timeDiff <= 0.20) {
+                        processTileHit(tile, timeDiff);
+                        hitFound = true;
+                        break;
+                    }
+                }
+            }
+
+            // Mistap on empty lane or outside timing window
+            if (!hitFound && !isRelaxMode) {
+                playHitSound('miss');
+                triggerMistapVisual(laneIndex);
+                combo = 0;
+                updateHUD();
+                triggerGameOver('Ketuk ubin yang kosong!');
+            }
+        }
+
+        function processTileHit(tile, timeDiff = 0) {
+            tile.hit = true;
+            hitNotesCount++;
+
+            let judgement = 'PERFECT';
+            let pts = 100;
+
+            if (timeDiff <= 0.075) {
+                judgement = 'PERFECT!';
+                pts = 100;
+            } else if (timeDiff <= 0.135) {
+                judgement = 'GREAT';
+                pts = 75;
+            } else {
+                judgement = 'GOOD';
+                pts = 50;
+            }
+
+            combo++;
+            if (combo > maxCombo) maxCombo = combo;
+            score += pts + Math.min(50, combo * 2);
+
+            playHitSound('tap');
+            createHitParticles(tile.lane, hitLineY);
+            addFloatingText(judgement, (tile.lane + 0.5) * laneWidth, hitLineY - 40);
+
+            updateHUD();
+        }
+
+        function triggerMistapVisual(laneIndex) {
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.5)';
+            ctx.fillRect(laneIndex * laneWidth, 0, laneWidth, canvasHeight);
+        }
+
+        // Pointer Event Listeners for Responsive Multi-Touch
+        canvas.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const lane = getLaneFromX(x);
+            activePointers.set(e.pointerId, lane);
+            handleLaneTap(lane);
+        });
+
+        canvas.addEventListener('pointerup', (e) => {
+            e.preventDefault();
+            activePointers.delete(e.pointerId);
+        });
+
+        canvas.addEventListener('pointercancel', (e) => {
+            e.preventDefault();
+            activePointers.delete(e.pointerId);
+        });
+
+        // Desktop Key Mappings: D -> Lane 0, F -> Lane 1, J -> Lane 2, K -> Lane 3
+        const KEY_LANE_MAP = { 'd': 0, 'D': 0, 'f': 1, 'F': 1, 'j': 2, 'J': 2, 'k': 3, 'K': 3 };
+        window.addEventListener('keydown', (e) => {
+            if (KEY_LANE_MAP.hasOwnProperty(e.key) && !e.repeat) {
+                handleLaneTap(KEY_LANE_MAP[e.key]);
+            }
+        });
+
+
+        // ================= PARTICLES & VISUAL EFFECTS =================
+
+        function createHitParticles(lane, y) {
+            const centerX = (lane + 0.5) * laneWidth;
+            for (let i = 0; i < 14; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 5;
+                activeParticles.push({
+                    x: centerX,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 2,
+                    size: 3 + Math.random() * 4,
+                    color: i % 2 === 0 ? '#00e5ff' : '#a855f7',
+                    alpha: 1,
+                    life: 0.35
+                });
+            }
+        }
+
+        function addFloatingText(text, x, y) {
+            floatingTexts.push({
+                text: text,
+                x: x,
+                y: y,
+                alpha: 1.0,
+                scale: 1.3
+            });
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-score').textContent = score.toLocaleString();
+            document.getElementById('hud-combo').textContent = combo;
+
+            // Star progress bar update
+            const totalMaxScore = (totalNotesCount || 1) * 120;
+            const progress = Math.min(100, (score / totalMaxScore) * 100);
+            document.getElementById('star-progress-fill').style.width = `${progress}%`;
+
+            document.getElementById('star-1').style.opacity = progress >= 30 ? '1' : '0.3';
+            document.getElementById('star-2').style.opacity = progress >= 60 ? '1' : '0.3';
+            document.getElementById('star-3').style.opacity = progress >= 90 ? '1' : '0.3';
+        }
+
+
+        // ================= MAIN RENDER & GAME LOOP =================
+
+        function gameLoop() {
+            if (gameState !== 'PLAYING' && gameState !== 'WAIT_START' && gameState !== 'PAUSED') return;
+
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            const songTime = getCurrentSongTime();
+
+            // 1. Draw Lane Lines & Press Glows
+            for (let i = 0; i < 4; i++) {
+                const x = i * laneWidth;
+
+                // Subtle vertical dividers
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvasHeight);
+                ctx.stroke();
+
+                // Lane key press glow highlight
+                if (lanePressState[i]) {
+                    const gradient = ctx.createLinearGradient(0, hitLineY - 120, 0, hitLineY + 40);
+                    gradient.addColorStop(0, 'rgba(0, 229, 255, 0)');
+                    gradient.addColorStop(1, 'rgba(0, 229, 255, 0.25)');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(x, 0, laneWidth, hitLineY + 40);
+                }
+            }
+
+            // 2. Draw Hit Line
+            const hitGlow = ctx.createLinearGradient(0, hitLineY - 4, 0, hitLineY + 4);
+            hitGlow.addColorStop(0, 'rgba(0, 229, 255, 0.2)');
+            hitGlow.addColorStop(0.5, 'rgba(0, 229, 255, 0.9)');
+            hitGlow.addColorStop(1, 'rgba(0, 229, 255, 0.2)');
+            ctx.fillStyle = hitGlow;
+            ctx.fillRect(0, hitLineY - 2, canvasWidth, 4);
+
+            // 3. Render Tiles
+            const tileHeight = 110; 
+            let unhitCount = 0;
+
+            for (let i = 0; i < activeBeatmap.length; i++) {
+                const tile = activeBeatmap[i];
+
+                // Y-position synced strictly to audio timing
+                const y = hitLineY - (tile.time - songTime) * speedPixelsPerSec;
+                const tileX = tile.lane * laneWidth;
+
+                // Skip rendering offscreen tiles
+                if (y < -300 || y > canvasHeight + 100) {
+                    if (!tile.hit && !tile.missed && y > canvasHeight + 100) {
+                        tile.missed = true;
+                        if (!isRelaxMode && gameState === 'PLAYING') {
+                            triggerGameOver('Ubin terlewat!');
+                            return;
+                        }
+                    }
+                    continue;
+                }
+
+                if (!tile.hit) unhitCount++;
+
+                if (!tile.hit && !tile.missed) {
+                    // Check if tile passed hit line without tap
+                    if (songTime > tile.time + 0.22 && gameState === 'PLAYING') {
+                        tile.missed = true;
+                        combo = 0;
+                        updateHUD();
+                        if (!isRelaxMode) {
+                            playHitSound('miss');
+                            triggerGameOver('Ubin terlewat!');
+                            return;
+                        }
+                    }
+
+                    // Render Tile Body
+                    const padding = 3;
+                    const w = laneWidth - padding * 2;
+                    const h = tile.type === 'hold' ? tileHeight + tile.duration * speedPixelsPerSec : tileHeight;
+
+                    // Neon Glassmorphic Gradient
+                    const tileGrad = ctx.createLinearGradient(tileX + padding, y - h, tileX + padding, y);
+                    tileGrad.addColorStop(0, '#00e5ff');
+                    tileGrad.addColorStop(0.5, '#7c3aed');
+                    tileGrad.addColorStop(1, '#0f172a');
+
+                    ctx.shadowColor = '#00e5ff';
+                    ctx.shadowBlur = 12;
+                    ctx.fillStyle = tileGrad;
+
+                    // Rounded rectangle tile
+                    ctx.beginPath();
+                    ctx.roundRect(tileX + padding, y - h, w, h, 14);
+                    ctx.fill();
+                    ctx.shadowBlur = 0; // reset shadow
+
+                    // Inner border highlight
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Start Tile Prompt Text
+                    if (gameState === 'WAIT_START' && i === 0) {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 16px "Plus Jakarta Sans"';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('TAP', tileX + laneWidth / 2, y - h / 2 + 5);
+                    }
+                }
+            }
+
+            // Check if song finished cleanly
+            if (unhitCount === 0 && gameState === 'PLAYING' && activeBeatmap.length > 0) {
+                const lastTile = activeBeatmap[activeBeatmap.length - 1];
+                if (songTime > lastTile.time + 1.0) {
+                    triggerGameComplete();
+                    return;
+                }
+            }
+
+            // 4. Render Hit Particles
+            for (let i = activeParticles.length - 1; i >= 0; i--) {
+                const p = activeParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.03;
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                if (p.alpha <= 0) activeParticles.splice(i, 1);
+            }
+
+            // 5. Render Floating Judgement Text
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y -= 1.2;
+                ft.alpha -= 0.03;
+                ft.scale = Math.max(1.0, ft.scale - 0.02);
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, ft.alpha);
+                ctx.font = `black ${Math.round(18 * ft.scale)}px "Plus Jakarta Sans"`;
+                ctx.fillStyle = '#00e5ff';
+                ctx.textAlign = 'center';
+                ctx.shadowColor = 'rgba(0, 229, 255, 0.8)';
+                ctx.shadowBlur = 10;
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+
+                if (ft.alpha <= 0) floatingTexts.splice(i, 1);
+            }
+
+            if (gameState === 'PLAYING' || gameState === 'WAIT_START') {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+
+        // ================= PAUSE & OVERLAY LIFECYCLE =================
+
+        document.getElementById('btn-pause').addEventListener('click', () => {
+            if (gameState !== 'PLAYING' && gameState !== 'WAIT_START') return;
+            gameState = 'PAUSED';
+
+            if (isHtmlAudioFallback && currentHtmlAudio) {
+                currentHtmlAudio.pause();
+            } else if (audioCtx && audioCtx.state === 'running') {
+                audioCtx.suspend();
+            }
+
+            screenPause.classList.remove('hidden');
+        });
+
+        document.getElementById('btn-resume').addEventListener('click', () => {
+            screenPause.classList.add('hidden');
+            gameState = 'PLAYING';
+
+            if (isHtmlAudioFallback && currentHtmlAudio) {
+                currentHtmlAudio.play().catch(e => console.warn(e));
+            } else if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            requestAnimationFrame(gameLoop);
+        });
+
+        document.getElementById('btn-restart').addEventListener('click', () => {
+            initGameSession();
+        });
+
+        document.getElementById('btn-pause-menu').addEventListener('click', () => {
+            returnToMenu();
+        });
+
+        // Auto-pause when user switches tabs or locks mobile screen
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && gameState === 'PLAYING') {
+                document.getElementById('btn-pause').click();
+            }
+        });
+
+
+        // ================= GAME RESULT & GAME OVER HANDLERS =================
+
+        function triggerGameOver(reasonText) {
+            gameState = 'RESULT';
+            stopAudioSources();
+
+            document.getElementById('result-title').textContent = 'GAME OVER';
+            document.getElementById('result-title').className = 'text-3xl font-black text-red-500 tracking-tight';
+            showResultScreen();
+        }
+
+        function triggerGameComplete() {
+            gameState = 'RESULT';
+            stopAudioSources();
+
+            document.getElementById('result-title').textContent = 'LAGU SELESAI!';
+            document.getElementById('result-title').className = 'text-3xl font-black text-cyan-400 neon-text-cyan tracking-tight';
+            showResultScreen();
+        }
+
+        function showResultScreen() {
+            hudOverlay.classList.add('hidden');
+            screenResult.classList.remove('hidden');
+
+            document.getElementById('result-song-name').textContent = currentSong ? currentSong.title : 'Lagu';
+            document.getElementById('res-score').textContent = score.toLocaleString();
+
+            const accuracy = totalNotesCount > 0 ? Math.round((hitNotesCount / totalNotesCount) * 100) : 100;
+            document.getElementById('res-accuracy').textContent = `${accuracy}%`;
+            document.getElementById('res-max-combo').textContent = maxCombo;
+
+            // Save & display high score
+            if (currentSong && currentSong.id) {
+                saveHighScore(currentSong.id, score);
+                const best = getHighScore(currentSong.id);
+                document.getElementById('res-best-score').textContent = best.toLocaleString();
+            }
+
+            // Calculate Stars earned
+            const totalMaxScore = (totalNotesCount || 1) * 120;
+            const pct = (score / totalMaxScore) * 100;
+
+            const s1 = document.getElementById('res-star-1');
+            const s2 = document.getElementById('res-star-2');
+            const s3 = document.getElementById('res-star-3');
+
+            s1.className = pct >= 30 ? 'transition-transform duration-300 scale-110 opacity-100' : 'transition-transform duration-300 scale-75 opacity-30';
+            s2.className = pct >= 60 ? 'transition-transform duration-300 scale-110 opacity-100' : 'transition-transform duration-300 scale-75 opacity-30';
+            s3.className = pct >= 90 ? 'transition-transform duration-300 scale-110 opacity-100' : 'transition-transform duration-300 scale-75 opacity-30';
+        }
+
+        document.getElementById('btn-res-replay').addEventListener('click', () => {
+            initGameSession();
+        });
+
+        document.getElementById('btn-res-menu').addEventListener('click', () => {
+            returnToMenu();
+        });
+
+        function returnToMenu() {
+            gameState = 'MENU';
+            stopAudioSources();
+
+            screenPause.classList.add('hidden');
+            screenResult.classList.add('hidden');
+            hudOverlay.classList.add('hidden');
+            
+            renderBuiltinSongs();
+
+            screenMenu.classList.remove('hidden');
+            setTimeout(() => screenMenu.classList.remove('opacity-0', 'pointer-events-none'), 50);
+        }
+
+        // Initial Canvas Setup on Load
+        window.addEventListener('load', () => {
+            resizeCanvas();
+        });
+    </script>
+</body>
+</html>
